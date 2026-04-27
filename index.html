@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StudentPerformance Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="style.css"/>
+</head>
+<body>
+
+<!-- ═══════════════════ LOGIN ═══════════════════ -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">Student<span>Perf</span> Dashboard</div>
+    <div class="login-sub">Academic Monitoring System</div>
+    <div class="role-tabs">
+      <button class="role-tab active" onclick="setRole('teacher')">👨‍🏫 Teacher</button>
+      <button class="role-tab" onclick="setRole('student')">👨‍🎓 Student</button>
+    </div>
+    <div class="form-group">
+      <label>USERNAME / ID</label>
+      <input type="text" id="login-user" placeholder="Enter your username" value="teacher1"/>
+    </div>
+    <div class="form-group">
+      <label>PASSWORD</label>
+      <input type="password" id="login-pass" placeholder="Enter password" value="pass123"/>
+    </div>
+    <div id="student-select-wrap" class="form-group" style="display:none;">
+      <label>SELECT YOUR ACCOUNT</label>
+      <select id="student-login-select"></select>
+    </div>
+    <button class="btn-primary" onclick="login()">Sign In →</button>
+    <div class="login-hint">
+      Teacher: <span>teacher1 / pass123</span> &nbsp;|&nbsp; Student: <span>student / pass123</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════ APP ═══════════════════ -->
+<div id="app">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-brand">Student<span>Perf</span></div>
+    <div class="sidebar-role" id="sidebar-role-badge">Teacher View</div>
+    <nav class="nav-group" id="nav-items"></nav>
+    <div class="sidebar-user">
+      <div class="user-avatar" id="user-avatar-init">T</div>
+      <div class="user-info">
+        <div class="user-name" id="user-display-name">Teacher</div>
+        <div class="user-role" id="user-display-role">Administrator</div>
+      </div>
+      <button class="logout-btn" onclick="logout()" title="Logout">⏏</button>
+    </div>
+  </aside>
+
+  <!-- MAIN CONTENT -->
+  <main class="main">
+
+    <!-- ─── TEACHER: DASHBOARD ─── -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <h1>📊 Dashboard Overview</h1>
+        <p>Real-time academic performance analytics</p>
+      </div>
+      <div id="risk-banners"></div>
+      <div class="stats-grid" id="stats-grid"></div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Class Performance Distribution</div>
+          <div class="chart-sub">Average scores per student</div>
+          <div class="chart-wrap"><canvas id="chart-bar"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Grade Band Distribution</div>
+          <div class="chart-sub">Students per grade level</div>
+          <div class="chart-wrap"><canvas id="chart-pie"></canvas></div>
+        </div>
+        <div class="chart-card full">
+          <div class="chart-title">Subject-wise Class Average</div>
+          <div class="chart-sub">Average scores across all subjects</div>
+          <div class="chart-wrap"><canvas id="chart-subject"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─── TEACHER: STUDENTS ─── -->
+    <div class="page" id="page-students">
+      <div class="page-header">
+        <h1>👥 Student Records</h1>
+        <p>Manage and monitor all student data</p>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>All Students</h3>
+          <div class="search-box">
+            <span>🔍</span>
+            <input type="text" placeholder="Search students…" oninput="filterStudents(this.value)"/>
+          </div>
+          <select class="filter-select" id="filter-section" onchange="filterStudents()">
+            <option value="">All Sections</option>
+            <option>A</option><option>B</option><option>C</option>
+          </select>
+          <select class="filter-select" id="filter-status" onchange="filterStudents()">
+            <option value="">All Status</option>
+            <option value="passing">Passing</option>
+            <option value="at-risk">At Risk</option>
+          </select>
+          <button class="btn btn-accent" onclick="openAddStudent()">+ Add Student</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th><th>Name</th><th>ID</th><th>Section</th>
+              <th>Math</th><th>Sci</th><th>Eng</th><th>Filipino</th><th>MAPEH</th>
+              <th>Average</th><th>Status</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="students-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── TEACHER: GRADES ─── -->
+    <div class="page" id="page-grades">
+      <div class="page-header">
+        <h1>📝 Grade Management</h1>
+        <p>Input and edit student grades</p>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Grade Input</h3>
+          <button class="btn btn-accent" onclick="openGradeModal()">+ Input Grades</button>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Student</th><th>Subject</th>
+              <th>Quiz Avg</th><th>Assignment Avg</th><th>Exam</th><th>Final Grade</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="grades-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── TEACHER: RANKINGS ─── -->
+    <div class="page" id="page-rankings">
+      <div class="page-header">
+        <h1>🏆 Top Students Ranking</h1>
+        <p>Class leaderboard based on overall average</p>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card">
+          <div class="chart-title">Top 5 Students</div>
+          <div class="chart-sub">By overall average grade</div>
+          <div class="chart-wrap tall"><canvas id="chart-top"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">At-Risk Students</div>
+          <div class="chart-sub">Students below 75 average</div>
+          <div id="at-risk-list" style="margin-top:8px;"></div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><h3>Full Rankings</h3></div>
+        <table>
+          <thead>
+            <tr>
+              <th>Rank</th><th>Name</th><th>Section</th>
+              <th>Average</th><th>Grade</th><th>Progress</th>
+            </tr>
+          </thead>
+          <tbody id="rankings-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── STUDENT: MY GRADES ─── -->
+    <div class="page" id="page-my-grades">
+      <div class="page-header">
+        <h1>📚 My Academic Record</h1>
+        <p>Your grades and performance overview</p>
+      </div>
+      <div class="profile-grid">
+        <div class="profile-card" id="student-profile-card"></div>
+        <div class="chart-card">
+          <div class="chart-title">Grade Trend</div>
+          <div class="chart-sub">Your performance per subject</div>
+          <div class="chart-wrap tall"><canvas id="chart-student-subject"></canvas></div>
+        </div>
+      </div>
+      <div class="table-card">
+        <div class="table-header"><h3>Detailed Grades</h3></div>
+        <table>
+          <thead>
+            <tr>
+              <th>Subject</th><th>Quiz Avg</th><th>Assignment Avg</th>
+              <th>Exam</th><th>Final Grade</th><th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="my-grades-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─── STUDENT: MY PROGRESS ─── -->
+    <div class="page" id="page-my-progress">
+      <div class="page-header">
+        <h1>📈 My Progress</h1>
+        <p>Track your improvement over time</p>
+      </div>
+      <div class="charts-grid">
+        <div class="chart-card full">
+          <div class="chart-title">Performance Over Quarters</div>
+          <div class="chart-sub">How your grades have changed each quarter</div>
+          <div class="chart-wrap"><canvas id="chart-student-progress"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Subject Breakdown</div>
+          <div class="chart-sub">Score distribution by subject</div>
+          <div class="chart-wrap tall"><canvas id="chart-student-radar"></canvas></div>
+        </div>
+        <div class="chart-card">
+          <div class="chart-title">Grade Composition</div>
+          <div class="chart-sub">Component weights in your final grade</div>
+          <div class="chart-wrap tall"><canvas id="chart-student-donut"></canvas></div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div><!-- /#app -->
+
+<!-- ─── ADD / EDIT STUDENT MODAL ─── -->
+<div class="modal-overlay" id="student-modal">
+  <div class="modal">
+    <h2 id="student-modal-title">Add New Student</h2>
+    <div class="form-row">
+      <div class="form-group-modal">
+        <label>FIRST NAME</label>
+        <input type="text" id="s-fname" placeholder="Maria"/>
+      </div>
+      <div class="form-group-modal">
+        <label>LAST NAME</label>
+        <input type="text" id="s-lname" placeholder="Santos"/>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group-modal">
+        <label>STUDENT ID</label>
+        <input type="text" id="s-id" placeholder="2024-0001"/>
+      </div>
+      <div class="form-group-modal">
+        <label>SECTION</label>
+        <select id="s-section">
+          <option>A</option><option>B</option><option>C</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('student-modal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveStudent()">Save Student</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── GRADE INPUT MODAL ─── -->
+<div class="modal-overlay" id="grade-modal">
+  <div class="modal">
+    <h2>Input Student Grades</h2>
+    <div class="form-group-modal">
+      <label>STUDENT</label>
+      <select id="g-student"></select>
+    </div>
+    <div class="form-group-modal">
+      <label>SUBJECT</label>
+      <select id="g-subject">
+        <option>Mathematics</option>
+        <option>Science</option>
+        <option>English</option>
+        <option>Filipino</option>
+        <option>MAPEH</option>
+      </select>
+    </div>
+    <div class="grade-section">
+      <h4>Quizzes (avg of 3)</h4>
+      <div class="grade-grid">
+        <div class="form-group-modal"><label>QUIZ 1</label><input type="number" id="g-q1" min="0" max="100" placeholder="85"/></div>
+        <div class="form-group-modal"><label>QUIZ 2</label><input type="number" id="g-q2" min="0" max="100" placeholder="90"/></div>
+        <div class="form-group-modal"><label>QUIZ 3</label><input type="number" id="g-q3" min="0" max="100" placeholder="88"/></div>
+      </div>
+    </div>
+    <div class="grade-section">
+      <h4>Assignments (avg of 3)</h4>
+      <div class="grade-grid">
+        <div class="form-group-modal"><label>ASSIGNMENT 1</label><input type="number" id="g-a1" min="0" max="100" placeholder="92"/></div>
+        <div class="form-group-modal"><label>ASSIGNMENT 2</label><input type="number" id="g-a2" min="0" max="100" placeholder="88"/></div>
+        <div class="form-group-modal"><label>ASSIGNMENT 3</label><input type="number" id="g-a3" min="0" max="100" placeholder="95"/></div>
+      </div>
+    </div>
+    <div class="grade-section">
+      <h4>Examination</h4>
+      <div class="form-group-modal">
+        <label>EXAM SCORE</label>
+        <input type="number" id="g-exam" min="0" max="100" placeholder="87"/>
+      </div>
+    </div>
+    <div class="grade-preview-box">
+      <div class="grade-preview-label">COMPUTED FINAL GRADE (Quizzes 30% + Assignments 30% + Exam 40%)</div>
+      <div id="grade-preview">—</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('grade-modal')">Cancel</button>
+      <button class="btn btn-accent" onclick="saveGrade()">Save Grade</button>
+    </div>
+  </div>
+</div>
+
+<script src="script.js"></script>
+</body>
+</html>
